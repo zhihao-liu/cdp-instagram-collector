@@ -1,0 +1,15 @@
+{
+  "name": "instagram-collector-service",
+  "version": "1.0.0",
+  "description": "Collecting data via Istagram API.",
+  "main": "app.js",
+  "author": "Zhihao Liu",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "express": "^4.15.4",
+    "instagram-private-api": "^0.6.2",
+    "mongodb": "^2.2.31",
+    "underscore": "^1.8.3"
+  }
+}
