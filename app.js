@@ -14,19 +14,19 @@ const app = express();
 app.use('/', (req, res, next) => {
   if (app.get('mongo')) next(); // MongoDB is already connected to
 
-  console.log(`Connecting to MongoDB...`);
+  console.log('Connecting to MongoDB...');
 
   const connectionUrl = 'mongodb://localhost:27017/instagram';
   const pMongo = Mongo.connect(connectionUrl);
-  pMongo.catch(err => logError(`connecting to MongoDB`, err));
+  pMongo.catch(err => logError('connecting to MongoDB', err));
 
-  app.set('pMongo', pMongo)
+  app.set('pMongo', pMongo);
   next();
 });
 
 // initialize collections in MongoDB
 app.use('/dbinit', (req, res) => {
-  console.log(`Initializing MongoDB collections...`);
+  console.log('Initializing MongoDB collections...');
 
   const pMongo = app.get('pMongo');
   pMongo.then(mongo => {
@@ -34,21 +34,21 @@ app.use('/dbinit', (req, res) => {
       createCollectionWithUniqueIndex(mongo, 'users'),
       createCollectionWithUniqueIndex(mongo, 'posts')
     ])
-      .catch(err => logError(`initializing MongoDB collections`, err));
+      .catch(err => logError('initializing MongoDB collections', err));
   });
 
   res.status(200);
-  res.send(`MongoDB sucessfully initialized.`);
+  res.send('MongoDB sucessfully initialized.');
 });
 
 // create Instagram session before collecting
 app.use('/collect', (req, res,next) => {
-  console.log(`Creating Instagram session...`);
+  console.log('Creating Instagram session...');
 
   const device = new Instagram.Device(login.username);
   const cookie = new Instagram.CookieMemoryStorage();
   const pSession = Instagram.Session.create(device, cookie, login.username, login.password)
-  pSession.catch(err => logError(`creating Instagram session`, err));
+  pSession.catch(err => logError('creating Instagram session', err));
 
   app.set('pSession', pSession);
   next();
@@ -57,8 +57,8 @@ app.use('/collect', (req, res,next) => {
 // fetch data of users based on followers of influencer
 app.use('/collect/users', (req, res) => {
   res.status(200);
-  res.send(`Fetching data of users...`);
-  console.log(`Fetching data of users...`);
+  res.send('Fetching data of users...');
+  console.log('Fetching data of users...');
 
   const pSession = app.get('pSession');
   const pMongo = app.get('pMongo');
@@ -68,7 +68,7 @@ app.use('/collect/users', (req, res) => {
     const influencerUsername = 'instagram';
     return Instagram.Account.searchForUser(session, influencerUsername);
   });
-  pInfluencer.catch(err => logError(`searching for influencer`, err));
+  pInfluencer.catch(err => logError('searching for influencer', err));
 
   // create feed of users (followers of pInfluencer)
   const pUserFeed = Promise.all([pSession, pInfluencer]).then(([session, influencer]) => {
@@ -79,14 +79,14 @@ app.use('/collect/users', (req, res) => {
   Promise.all([pUserFeed, pMongo]).then(([userFeed, mongo]) => {
     return fetchFeedData(userFeed, mongo.collection('users'), {showMessage: true});
   })
-    .then(() => console.log(`Fetching feed data of users finished`));;
+    .then(() => console.log('Fetching feed data of users finished'));;
 });
 
 // fetch data of posts of users whose info have already been stored in MongoDB
 app.use('/collect/posts', async (req, res) => {
   res.status(200);
-  res.send(`Fetching data of posts...`);
-  console.log(`Fetching data of posts...`);
+  res.send('Fetching data of posts...');
+  console.log('Fetching data of posts...');
 
   const pSession = app.get('pSession');
   const pMongo = app.get('pMongo');
@@ -109,12 +109,12 @@ app.use('/collect/posts', async (req, res) => {
               datesFetched.push(dateToday);
               // mark user whose posts for today have been fetched
               mongo.collection('users').updateOne({'id': item.id}, {'$set': {'datesFetched': datesFetched}})
-                .catch(err => logError(`marking user whose posts completed`, err));
+                .catch(err => logError('marking user whose posts completed', err));
             })
         );
       }
       catch (err) {
-        logError(`retrieving user info from MongoDB`, err);
+        logError('retrieving user info from MongoDB', err);
       }
     }
 
@@ -128,14 +128,14 @@ app.use('/collect/posts', async (req, res) => {
     //         datesFetched.push(dateToday);
     //         // mark user whose posts for today have been fetched
     //         mongo.collection('users').updateOne({'id': item.id}, {'$set': {'datesFetched': datesFetched}})
-    //           .catch(err => logError(`marking user whose posts completed`, err));
+    //           .catch(err => logError('marking user whose posts completed', err));
     //       })
     //   );
     // }, err => {
-    //   if (err) logError(`iterating "users" in MongoDB`, err);
+    //   if (err) logError('iterating "users" in MongoDB', err);
     // });
 
-    Promise.all(pAllUsersHandled).then(() => console.log(`Posts fetched of all users currently in MongoDB.`))
+    Promise.all(pAllUsersHandled).then(() => console.log('Posts fetched of all users currently in MongoDB.'))
   });
 });
 
@@ -159,22 +159,25 @@ async function fetchFeedData(feed, mongoCollection, options) {
         const nextPage = _.flatten(await feed.get());
         pAllPagesHandled.push(
           pushArrayItemParamsIntoMongo(nextPage, mongoCollection)
-            .then(() => countItemsFetched += nextPage.length())
+            .then(() => countItemsFetched += nextPage.length)
             .catch(err => {
               // docs with duplicate key cannot be successfully inserted
               // thus repeatitions will be ignored
+              const ignorableErrors = ['MongoError: E11000 duplicate key'];
+              if (!errorInList(err, ignorableErrors)) logError('inserting docs into MongoDB', err);
             })
         );
       } catch (err) {
-        // The message of error to be handled: "RequestError: Please wait a few minutes before you try again."
-        // The code of error to be handled: undefined
+        // The message of error to be handled as putting function to sleep:
+        // "RequestError: Please wait a few minutes before you try again."
+        const ignorableErrors = ['PrivateUserError'];
 
-        if (showMessage) {
-          logError(`iterating feed data of ${mongoCollection.s.name}`, err);
-          console.log(`Fetching feed data of ${mongoCollection.s.name} put to sleep for ${sleepDuration} minutes...`);
+        if (showMessage && !errorInList(err, ignorableErrors)) logError(`iterating feed data of ${mongoCollection.s.name}`, err);
+
+        if (errorInList(err, ['RequestError: Please wait a few minutes'])) {
+          if (showMessage) console.log(`Fetching feed data of ${mongoCollection.s.name} put to sleep for ${sleepDuration} minutes...`);
+          await sleep(sleepDuration);
         }
-
-        await sleep(sleepDuration);
       }
     } while (feed.isMoreAvailable());
 
@@ -197,10 +200,19 @@ function pushArrayItemParamsIntoMongo(array, mongoCollection) {
 
 // show status code and message of error and where it happens
 function logError(occasion, err) {
-  console.log(`Error when ` + occasion + `: (${err.status}) ${err}`);
+  console.log(`Error when ${occasion}: ${err}`);
 }
 
 // put asynchronous function to sleep
 function sleep(minutes) {
   return new Promise((resolve) => setTimeout(resolve, minutes * 60 * 1000));
+}
+
+// ignore some known errors in console log
+function errorInList(err, knownErrors) {
+  for (const item of knownErrors) {
+    if (err.toString().substr(0, item.length) === item) return true;
+  }
+
+  return false;
 }
