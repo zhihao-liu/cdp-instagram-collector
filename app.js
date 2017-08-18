@@ -1,8 +1,9 @@
 'use strict';
 
-const express = require('express');
 const Promise = require('bluebird');
+const express = require('express');
 const _ = require('underscore');
+const log4js = require('log4js');
 const Mongo = require('mongodb').MongoClient();
 const Instagram = require('instagram-private-api').V1;
 const login = require('./config/login');
@@ -10,11 +11,26 @@ const appConfig = require('./config/app-config');
 
 const app = express();
 
+const date = new Date();
+const dateString = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+log4js.configure({
+  appenders: {
+    console: {type: 'console'},
+    file: {type: 'file', filename: `logs/${dateString}.log`}
+  },
+  categories: {
+    default: {appenders: ['console', 'file'], level: 'info'}
+  }
+});
+const logger = log4js.getLogger();
+
+
 // connect to MongoDB
 app.use('/', (req, res, next) => {
-  if (app.get('mongo')) next(); // MongoDB is already connected to
+  if (app.get('pMongo')) { next(); return; } // connection already exists
 
-  console.log('Connecting to MongoDB...');
+  logger.info('Connecting to MongoDB...');
 
   const connectionUrl = 'mongodb://localhost:27017/instagram';
   const pMongo = Mongo.connect(connectionUrl);
@@ -24,9 +40,10 @@ app.use('/', (req, res, next) => {
   next();
 });
 
+
 // initialize collections in MongoDB
 app.use('/dbinit', (req, res) => {
-  console.log('Initializing MongoDB collections...');
+  logger.info('Initializing MongoDB collections...');
 
   const pMongo = app.get('pMongo');
   pMongo.then(mongo => {
@@ -38,12 +55,15 @@ app.use('/dbinit', (req, res) => {
   });
 
   res.status(200);
-  res.send('MongoDB sucessfully initialized.');
+  logAndSend(logger, res, 'MongoDB sucessfully initialized.');
 });
+
 
 // create Instagram session before collecting
 app.use('/collect', (req, res,next) => {
-  console.log('Creating Instagram session...');
+  if (app.get('pSession')) { next(); return; } // session already exists
+
+  logger.info('Creating Instagram session...');
 
   const device = new Instagram.Device(login.username);
   const cookie = new Instagram.CookieMemoryStorage();
@@ -54,11 +74,11 @@ app.use('/collect', (req, res,next) => {
   next();
 });
 
+
 // fetch data of users based on followers of influencer
 app.use('/collect/users', (req, res) => {
   res.status(200);
-  res.send('Fetching data of users...');
-  console.log('Fetching data of users...');
+  logAndSend(logger, res, 'Fetching data of users...');
 
   const pSession = app.get('pSession');
   const pMongo = app.get('pMongo');
@@ -79,36 +99,35 @@ app.use('/collect/users', (req, res) => {
   Promise.all([pUserFeed, pMongo]).then(([userFeed, mongo]) => {
     return fetchFeedData(userFeed, mongo.collection('users'), {showMessage: true});
   })
-    .then(() => console.log('Fetching feed data of users finished'));;
+    .then(() => logger.info('Fetching feed data of users finished'));
 });
 
+
 // fetch data of posts of users whose info have already been stored in MongoDB
-app.use('/collect/posts', async (req, res) => {
+app.use('/collect/posts', (req, res) => {
   res.status(200);
-  res.send('Fetching data of posts...');
-  console.log('Fetching data of posts...');
+  logAndSend(logger, res, 'Fetching data of posts...');
 
   const pSession = app.get('pSession');
   const pMongo = app.get('pMongo');
 
-  const dateToday = new Date();
   let pAllUsersHandled = [];
 
   Promise.all([pSession, pMongo]).then(async ([session, mongo]) => {
     const cursorCollectionUsers = mongo.collection('users')
-      .find({'datesFetched': {'$nin': [dateToday]}, 'isPrivate': false});
+      .find({datesFetched: {$nin: [dateString]}, 'info.isPrivate': false});
 
     while(await cursorCollectionUsers.hasNext()) {
       try {
         const item = await cursorCollectionUsers.next();
-        const postFeed = new Instagram.Feed.UserMedia(session, item.id);
+        const postFeed = new Instagram.Feed.UserMedia(session, item.info.id);
         pAllUsersHandled.push(
           fetchFeedData(postFeed, mongo.collection('posts'))
             .then(() => {
               let datesFetched = (typeof item.datesFetched) !== 'undefined' ? item.datesFetched : [];
-              datesFetched.push(dateToday);
+              datesFetched.push(dateString);
               // mark user whose posts for today have been fetched
-              mongo.collection('users').updateOne({'id': item.id}, {'$set': {'datesFetched': datesFetched}})
+              mongo.collection('users').updateOne({'info.id': item.info.id}, {$set: {datesFetched: datesFetched}})
                 .catch(err => logError('marking user whose posts completed', err));
             })
         );
@@ -118,29 +137,23 @@ app.use('/collect/posts', async (req, res) => {
       }
     }
 
-    // cursorCollectionUsers.forEach(item => {
-    //   const postFeed = new Instagram.Feed.UserMedia(session, item.id);
-    //
-    //   pAllUsersHandled.push(
-    //     fetchFeedData(postFeed, mongo.collection('posts'))
-    //       .then(() => {
-    //         let datesFetched = (typeof item.datesFetched) !== 'undefined' ? item.datesFetched : [];
-    //         datesFetched.push(dateToday);
-    //         // mark user whose posts for today have been fetched
-    //         mongo.collection('users').updateOne({'id': item.id}, {'$set': {'datesFetched': datesFetched}})
-    //           .catch(err => logError('marking user whose posts completed', err));
-    //       })
-    //   );
-    // }, err => {
-    //   if (err) logError('iterating "users" in MongoDB', err);
-    // });
-
-    Promise.all(pAllUsersHandled).then(() => console.log('Posts fetched of all users currently in MongoDB.'))
+    Promise.all(pAllUsersHandled).then(() => logger.info('Posts fetched of all users currently in MongoDB.'))
   });
 });
 
+
+// download media using URLs stored in MongoDB
+app.use('/download', (req, res) => {
+  res.status(200);
+  logAndSend(logger, res, 'Coming soon...');
+
+  // to be developed...
+});
+
+
 app.listen(appConfig.port);
-console.log(`Server listening on port ${appConfig.port}`);
+logger.info(`Server listening on port ${appConfig.port}`);
+
 
 // iterate data of given feed and push them into MongoDB
 async function fetchFeedData(feed, mongoCollection, options) {
@@ -158,7 +171,7 @@ async function fetchFeedData(feed, mongoCollection, options) {
       try {
         const nextPage = _.flatten(await feed.get());
         pAllPagesHandled.push(
-          pushArrayItemParamsIntoMongo(nextPage, mongoCollection)
+          pushIntoMongo(nextPage, mongoCollection)
             .then(() => countItemsFetched += nextPage.length)
             .catch(err => {
               // docs with duplicate key cannot be successfully inserted
@@ -175,7 +188,7 @@ async function fetchFeedData(feed, mongoCollection, options) {
         if (showMessage && !errorInList(err, ignorableErrors)) logError(`iterating feed data of ${mongoCollection.s.name}`, err);
 
         if (errorInList(err, ['RequestError: Please wait a few minutes'])) {
-          if (showMessage) console.log(`Fetching feed data of ${mongoCollection.s.name} put to sleep for ${sleepDuration} minutes...`);
+          if (showMessage) logger.info(`Fetching feed data of ${mongoCollection.s.name} put to sleep for ${sleepDuration} minutes...`);
           await sleep(sleepDuration);
         }
       }
@@ -184,29 +197,36 @@ async function fetchFeedData(feed, mongoCollection, options) {
     return Promise.all(pAllPagesHandled);
 }
 
+
 // create unique index to avoid duplicate docs
 function createCollectionWithUniqueIndex(mongo, collectionName) {
   return mongo.createCollection(collectionName)
-    .then(collection => collection.createIndex({id: 1}, {unique: true}));
+    .then(collection => collection.createIndex({'info.id': 1}, {unique: true}));
 }
 
+
 // push the "params" property of each array item into MongoDB
-function pushArrayItemParamsIntoMongo(array, mongoCollection) {
+function pushIntoMongo(array, mongoCollection) {
   let pAllItemsHandled = [];
-  for (const item of array) pAllItemsHandled.push(mongoCollection.insertOne(item.params));
+  for (const item of array) {
+    pAllItemsHandled.push(mongoCollection.update({id: item.params.id}, {$set: {info: item.params}}, {upsert: true}));
+  }
 
   return Promise.all(pAllItemsHandled);
 }
 
+
 // show status code and message of error and where it happens
 function logError(occasion, err) {
-  console.log(`Error when ${occasion}: ${err}`);
+  logger.error(`Error when ${occasion}: ${err}`);
 }
+
 
 // put asynchronous function to sleep
 function sleep(minutes) {
   return new Promise((resolve) => setTimeout(resolve, minutes * 60 * 1000));
 }
+
 
 // ignore some known errors in console log
 function errorInList(err, knownErrors) {
@@ -215,4 +235,11 @@ function errorInList(err, knownErrors) {
   }
 
   return false;
+}
+
+
+// log message and send it as response
+function logAndSend(logger, res, message) {
+  logger.info(message);
+  res.send(message);
 }
