@@ -28,7 +28,7 @@ const logger = log4js.getLogger();
 
 // connect to MongoDB
 app.use('/', (req, res, next) => {
-  if (app.get('pMongo')) { next(); return; } // connection already exists
+  if (app.get('pMongo')) return next(); // connection already exists
 
   logger.info('Connecting to MongoDB...');
 
@@ -37,7 +37,7 @@ app.use('/', (req, res, next) => {
   pMongo.catch(err => logError('connecting to MongoDB', err));
 
   app.set('pMongo', pMongo);
-  next();
+  return next();
 });
 
 
@@ -54,14 +54,13 @@ app.use('/dbinit', (req, res) => {
       .catch(err => logError('initializing MongoDB collections', err));
   });
 
-  res.status(200);
   logAndSend(logger, res, 'MongoDB sucessfully initialized.');
 });
 
 
 // create Instagram session before collecting
 app.use('/collect', (req, res,next) => {
-  if (app.get('pSession')) { next(); return; } // session already exists
+  if (app.get('pSession')) return next(); // session already exists
 
   logger.info('Creating Instagram session...');
 
@@ -71,13 +70,12 @@ app.use('/collect', (req, res,next) => {
   pSession.catch(err => logError('creating Instagram session', err));
 
   app.set('pSession', pSession);
-  next();
+  return next();
 });
 
 
 // fetch data of users based on followers of influencer
 app.use('/collect/users', (req, res) => {
-  res.status(200);
   logAndSend(logger, res, 'Fetching data of users...');
 
   const pSession = app.get('pSession');
@@ -104,9 +102,8 @@ app.use('/collect/users', (req, res) => {
 
 
 // fetch data of posts of users whose info have already been stored in MongoDB
-app.use('/collect/posts', (req, res) => {
-  res.status(200);
-  logAndSend(logger, res, 'Fetching data of posts...');
+app.use('/collect/user-posts', (req, res) => {
+  logAndSend(logger, res, 'Fetching data of user posts...');
 
   const pSession = app.get('pSession');
   const pMongo = app.get('pMongo');
@@ -142,9 +139,55 @@ app.use('/collect/posts', (req, res) => {
 });
 
 
+// fetch data of posts with a given hashtag
+app.use('/collect/hashtagged-posts/:hashtag', (req, res) => {
+  const hashtag = req.params.hashtag;
+
+  logAndSend(logger, res, `Fetching data of posts with hashtag "${hashtag}"...`);
+
+  const pSession = app.get('pSession');
+  const pMongo = app.get('pMongo');
+
+  const pPostFeed = pSession.then(session => {
+    return new Instagram.Feed.TaggedMedia(session, hashtag);
+  });
+
+  Promise.all([pPostFeed, pMongo]).then(([postFeed, mongo]) => {
+    return fetchFeedData(postFeed, mongo.collection(`posts`), {showMessage: true});
+  })
+    .then(() => logger.info(`Fetching feed data of hashtag "${hashtag}" finished`));
+});
+
+
+// fetch data of posts with a given location
+app.use('/collect/located-posts/:locationName', (req, res) => {
+  const locationName = req.params.locationName;
+
+  const pSession = app.get('pSession');
+  const pMongo = app.get('pMongo');
+
+  const pLocation = pSession.then(session => {
+    return Instagram.Location.search(session, locationName)
+      .then(locationResults => locationResults[0]);
+  });
+  pLocation.catch(err => logError('searching for location', err));
+  pLocation.then(location => {
+    logAndSend(logger, res, `Fetching data of posts with location "${location.params.title}"...`);
+
+    const pPostFeed = pSession.then(session => {
+      return new Instagram.Feed.LocationMedia(session, location.params.id);
+    });
+
+    Promise.all([pPostFeed, pMongo]).then(([postFeed, mongo]) => {
+      return fetchFeedData(postFeed, mongo.collection(`posts`), {showMessage: true});
+    })
+      .then(() => logger.info(`Fetching feed data of location "${location.params.title}" finished`));
+  });
+});
+
+
 // download media using URLs stored in MongoDB
 app.use('/download', (req, res) => {
-  res.status(200);
   logAndSend(logger, res, 'Coming soon...');
 
   // to be developed...
@@ -241,5 +284,6 @@ function errorInList(err, knownErrors) {
 // log message and send it as response
 function logAndSend(logger, res, message) {
   logger.info(message);
+  res.status(200);
   res.send(message);
 }
