@@ -1,9 +1,12 @@
 'use strict';
 
-const Promise = require('bluebird');
 const express = require('express');
+const Promise = require('bluebird');
 const _ = require('underscore');
 const log4js = require('log4js');
+const fs = require('fs');
+const download = require('download');
+const path = require('path');
 const Mongo = require('mongodb').MongoClient();
 const Instagram = require('instagram-private-api').V1;
 const login = require('./config/login');
@@ -17,7 +20,7 @@ const dateString = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 log4js.configure({
   appenders: {
     console: {type: 'console'},
-    file: {type: 'file', filename: `logs/${dateString}.log`}
+    file: {type: 'file', filename: path.join(__dirname, `logs/${dateString}.log`)}
   },
   categories: {
     default: {appenders: ['console', 'file'], level: 'info'}
@@ -188,14 +191,71 @@ app.use('/collect/located-posts/:locationName', (req, res) => {
 
 // download media using URLs stored in MongoDB
 app.use('/download', (req, res) => {
-  logAndSend(logger, res, 'Coming soon...');
+  logAndSend(logger, res, 'Downloading media by URLs in MongoDB...');
 
-  // to be developed...
+  const pMongo = app.get('pMongo');
+
+  pMongo.then(async mongo => {
+    const cursorCollectionPosts = mongo.collection('posts')
+      .find({mediaSrc: {$exists: false}});
+
+    while(await cursorCollectionPosts.hasNext()) {
+      try {
+        const item = await cursorCollectionPosts.next();
+        let srcPaths = [];
+        let pAllMediaDownloaded = [];
+        switch (item.info.mediaType) {
+          case 1: { // single image
+            const pMediaDownloaded = download(item.info.images[0].url).then(data => {
+              const srcPath = path.join(appConfig.downloadedMediaPath, `img_${item.info.id}_0.jpg`);
+              srcPaths.push(srcPath);
+              return fs.writeFileSync(srcPath, data);
+            });
+            pMediaDownloaded.catch(err => {throw err;});
+            pAllMediaDownloaded.push(pMediaDownloaded);
+            break;
+          }
+          case 2: { // single video
+            const pMediaDownloaded = download(item.info.videos[0].url).then(async data => {
+              const srcPath = path.join(appConfig.downloadedMediaPath, `vid_${item.info.id}_0.mp4`);
+              srcPaths.push(srcPath);
+              return fs.writeFileSync(srcPath, data);
+            });
+            pMediaDownloaded.catch(err => {throw err;});
+            pAllMediaDownloaded.push(pMediaDownloaded);
+            break;
+          }
+          case 8: // multiple images
+          {
+            for (let i = 1; i < item.info.images.length; ++i) {
+              const pMediaDownloaded = download(item.info.images[i][0].url).then(data => {
+                const srcPath = path.join(appConfig.downloadedMediaPath, `img_${item.info.id}_${i}.jpg`);
+                srcPaths.push(srcPath);
+                return fs.writeFileSync(srcPath, data);
+              });
+              pMediaDownloaded.catch(err => {throw err;});
+              pAllMediaDownloaded.push(pMediaDownloaded);
+            }
+            break;
+          }
+          default:
+            break;
+        }
+        Promise.all(pAllMediaDownloaded).then(() => {
+          return mongo.collection('posts').updateOne({'info.id': item.info.id},
+                                              {$set: {mediaSrc: srcPaths}});
+        });
+      }
+      catch (err) {
+        logError('downloading post media from Instagram Server', err);
+      }
+    }
+  });
 });
 
 
-app.listen(appConfig.port);
-logger.info(`Server listening on port ${appConfig.port}`);
+app.listen(appConfig.serverPort);
+logger.info(`Server listening on port ${appConfig.serverPort}`);
 
 
 // iterate data of given feed and push them into MongoDB
