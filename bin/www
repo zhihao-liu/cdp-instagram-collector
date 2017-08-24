@@ -1,0 +1,19 @@
+'use strict';
+
+const app = require('../src/app');
+const http = require('http');
+const port = require('../config/app-config').serverPort;
+const logger = require('../src/logger');
+const utilities = require('../src/utilities');
+
+const server = http.createServer(app);
+
+server.on('error', err => logger.errorWhen('creating http server', err));
+server.on('listening', () => logger.info(`Server listening on port ${port}`));
+server.on('close', () => server.listen(3000));
+
+// automatically restart the server every day
+server.listen(port, async () => {
+  await utilities.wait(3 * 24 * 60);
+  server.close();
+});
