@@ -1,9 +1,13 @@
+'use strict';
+
+const path = require('path');
+
 module.exports = {
-  serverPort: 3005,
-  mongoPort: 27017,
+  serverPortDefault: 3000,
+  mongoPortDefault: 27017,
   mongoName: 'instagram',
-  pathPostMedia: "C:\\Users\\Zhihao\\Documents\\Workstation\\media-insta",
-  pathProfilePicture: "C:\\Users\\Zhihao\\Documents\\Workstation\\profile-insta",
+  pathPostMedia: path.join(__dirname, '../../data-collection/media-insta'),
+  pathProfilePictures: path.join(__dirname, '../../data-collection/profile-insta'),
   numUserPostsPerDay: 20,
   numTaggedPostsPerHour: 100,
   sleepDuration: 5
