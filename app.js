@@ -15,7 +15,8 @@ app.use('/', (req, res, next) => {
     .activate()
     .then(() => {
       return next();
-    });
+    })
+    .catch(err => logger.errorWhen('activating collector', err));
 });
 
 app.use('/users', (req, res) => {
