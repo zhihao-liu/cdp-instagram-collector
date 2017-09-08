@@ -17,63 +17,49 @@ app.use('/', async (req, res, next) => {
 });
 
 app.use('/users', (req, res) => {
-  logger.infoWithResponse('Collecting users started.', res);
-  const collector = app.get('collector');
-
-  collector.startCollectingUsers()
+  logger.infoWithResponse(`Collecting users started.`, res);
+  app.get('collector').startCollectingUsers()
     .catch(err => logger.errorWhen('running collector', err));
 });
 
-app.use('/user-posts', (req, res) => {
-  logger.infoWithResponse('Collecting posts of users started.', res);
-  const collector = app.get('collector');
-
-  collector.startCollectingUserPosts()
+app.use('/posts-new', (req, res) => {
+  logger.infoWithResponse(`Collecting new posts from users started.`, res);
+  app.get('collector').startCollectingPostsNew()
     .catch(err => logger.errorWhen('running collector', err));
 });
 
-app.use('/user-posts-historical', (req, res) => {
-  logger.infoWithResponse('Collecting historical posts of users started.', res);
-  const collector = app.get('collector');
-
-  collector.startCollectingUserPostsHistorical()
-    .catch(err => logger.errorWhen('running collector', err));
-});
-
-app.use('/hashtagged-posts/:hashtagName', (req, res) => {
-  const hashtagName = req.params.hashtagName;
-
-  logger.infoWithResponse(`Collecting posts with hashtag "${hashtagName}" started.`, res);
-  const collector = app.get('collector');
-
-  collector.startCollectingHashTaggedPosts(req.params.hashtagName)
-    .catch(err => logger.errorWhen('running collector', err));
-});
-
-app.use('/located-posts/:locationName', (req, res) => {
-  const locationName = req.params.locationName;
-
-  logger.infoWithResponse(`Collecting posts with location "${locationName}" started.`, res);
-  const collector = app.get('collector');
-
-  collector.startCollectingLocatedPosts(locationName)
+app.use('/posts-historical', (req, res) => {
+  logger.infoWithResponse(`Collecting historical posts from users started.`, res);
+  app.get('collector').startCollectingPostsHistorical()
     .catch(err => logger.errorWhen('running collector', err));
 });
 
 app.use('/download-post-media', (req, res) => {
-  logger.infoWithResponse('Downloading post media started.', res);
-  const collector = app.get('collector');
-
-  collector.startDownloadingPostMedia()
+  logger.infoWithResponse(`Downloading media of posts started.`, res);
+  app.get('collector').startDownloadingPostMedia()
     .catch(err => logger.errorWhen('running collector', err));
 });
 
 app.use('/download-profile-pictures', (req, res) => {
-  logger.infoWithResponse('Downloading user profile pictures started.', res);
-  const collector = app.get('collector');
+  logger.infoWithResponse(`Downloading profile pictures of users started.`, res);
+  app.get('collector').startDownloadingProfilePictures()
+    .catch(err => logger.errorWhen('running collector', err));
+});
 
-  collector.startDownloadingProfilePictures()
-    .catch(err => logger.errorWhen('fetching data via collector', err));
+app.use('/posts-with-hashtag/:hashtagString', (req, res) => {
+  const hashtagString = req.params.hashtagString;
+
+  logger.infoWithResponse(`Collecting posts with hastag ${hashtagString} started.`, res);
+  app.get('collector').startCollectingPostsWithHashtag(hashtagString)
+    .catch(err => logger.errorWhen('running collector', err));
+});
+
+app.use('/posts-with-location/:locationString', (req, res) => {
+  const locationString = req.params.locationString;
+
+  logger.infoWithResponse(`Collecting posts with hastag ${locationString} started.`, res);
+  app.get('collector').startCollectingPostsWithLocation(locationString)
+    .catch(err => logger.errorWhen('running collector', err));
 });
 
 module.exports = app;
