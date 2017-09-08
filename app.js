@@ -15,8 +15,7 @@ app.use('/', (req, res, next) => {
     .activate()
     .then(() => {
       return next();
-    })
-    .catch(err => logger.errorWhen('activating collector', err));
+    });
 });
 
 app.use('/users', (req, res) => {
@@ -28,10 +27,18 @@ app.use('/users', (req, res) => {
 });
 
 app.use('/user-posts', (req, res) => {
-  logger.infoWithResponse('Collecting user posts started.', res);
+  logger.infoWithResponse('Collecting posts of users started.', res);
   const collector = app.get('collector');
 
   collector.startCollectingUserPosts()
+    .catch(err => logger.errorWhen('running collector', err));
+});
+
+app.use('/user-posts-historical', (req, res) => {
+  logger.infoWithResponse('Collecting historical posts of users started.', res);
+  const collector = app.get('collector');
+
+  collector.startCollectingUserPostsHistorical()
     .catch(err => logger.errorWhen('running collector', err));
 });
 
