@@ -6,16 +6,14 @@ const InstaCollector = require('./lib/collector');
 const appConfig = require('./config/app-config');
 const loginInfo = require('./config/login-info');
 
-app.use('/', (req, res, next) => {
+app.use('/', async (req, res, next) => {
   if (!app.get('collector')) {
-    app.set('collector', new InstaCollector(loginInfo, appConfig));
+    const collector = new InstaCollector(loginInfo, appConfig);
+    await collector.activate();
+    app.set('collector', collector);
   }
 
-  app.get('collector')
-    .activate()
-    .then(() => {
-      return next();
-    });
+  return next();
 });
 
 app.use('/users', (req, res) => {
