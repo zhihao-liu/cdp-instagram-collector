@@ -2,5 +2,5 @@
 
 module.exports = {
   username: 'mcrlab',
-  password: 'uottawa:mcrlab'
+  password: 'uottawa-mcrlab'
 };

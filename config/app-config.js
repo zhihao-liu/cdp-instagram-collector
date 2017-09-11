@@ -2,13 +2,22 @@
 
 const path = require('path');
 
+const storagePath = path.join(__dirname, '../../data');
+
 module.exports = {
   serverPortDefault: 3000,
   mongoPortDefault: 27017,
   mongoName: 'cdpInsta',
-  pathPostMedia: path.join(__dirname, '../../data/post-media'),
-  pathProfilePictures: path.join(__dirname, '../../data/profile-pictures'),
   numUserPostsPerDay: 20,
   numTaggedPostsPerHour: 100,
-  sleepDuration: 5
+  numUsersInProgress: 20,
+  sleepDuration: 5,
+  bufferSize: {
+    users: 100,
+    posts: 100
+  },
+  srcPath: {
+    users: path.join(storagePath, 'profile-pictures'),
+    posts: path.join(storagePath, 'post-media')
+  }
 };
