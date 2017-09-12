@@ -13,8 +13,8 @@ module.exports = {
   numUsersInProgress: 20,
   sleepDuration: 5,
   bufferSize: {
-    users: 100,
-    posts: 100
+    users: 200,
+    posts: 200
   },
   srcPath: {
     users: path.join(storagePath, 'profile-pictures'),
