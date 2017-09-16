@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Instagram Collector</title>
+</head>
+
+<body>
+  <form action='/start' method='post'>
+    <label for='MEDIA-STORAGE-PATH'>Media Storage Path:</label>
+    <input id='MEDIA-STORAGE-PATH' name='mediaStoragePath' type='text' size = 30 />
+    <ul>
+      <li>
+        <label for='COLLECT-USERS'>Collect Users:</label>
+        <input id='COLLECT-USERS' name='collectUsers' type='checkbox' />
+      </li>
+
+      <li>
+        <label for='COLLECT-POSTS'>Collect Posts:</label>
+        <input id='COLLECT-POSTS' name='collectPosts' type='checkbox' />
+        <select name='optionCollectPosts'>
+          <option value='historical'>Historical Data</option>
+          <option value='new'>New Data</option>
+        </select>
+      </li>
+
+      <li>
+        <label for='COLLECT-HASHTAG-POSTS'>Collect Posts with Hashtag:</label>
+        <input id='COLLECT-HASHTAG-POSTS' name='collectHashtagPosts' type='checkbox' />
+        <input name='specifiedHashtags' type='text' size=10 />
+        <label>(separate each by comma)</label>
+      </li>
+
+      <li>
+        <label for='COLLECT-LOCATION-POSTS'>Collect Posts with Location:</label>
+        <input id='COLLECT-LOCATION-POSTS' name='collectLocationPosts' type='checkbox' />
+        <input name='specifiedLocations' type='text' size=10 />
+        <label>(separate each by comma)</label>
+      </li>
+    </ul>
+    <input type='submit' value='Start'>
+  </form>
+  <br>
+</body>
+</html>

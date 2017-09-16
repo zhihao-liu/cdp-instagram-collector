@@ -13,4 +13,4 @@ const server = http.createServer(app);
 server.listen(port);
 
 server.on('error', err => logger.errorWhen('creating http server', err));
-server.on('listening', () => logger.info(`Server listening on port ${port}`));
+server.on('listening', () => console.log(`Server listening on port ${port}`));

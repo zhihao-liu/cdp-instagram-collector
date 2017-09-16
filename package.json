@@ -5,12 +5,15 @@
   "private": true,
   "author": "Zhihao Liu",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "node ./bin/test"
   },
   "dependencies": {
     "bluebird": "^3.5.0",
+    "body-parser": "^1.18.1",
     "download-to-file": "^2.0.0",
     "express": "^4.15.4",
+    "html": "^1.0.0",
     "instagram-private-api": "^0.6.2",
     "log4js": "^2.3.3",
     "mongodb": "^2.2.31",
