@@ -5,7 +5,7 @@ const path = require('path');
 module.exports = {
   serverPortDefault: 3000,
   mongoPortDefault: 27017,
-  mongoName: 'cdpInsta',
+  mongoConnectionUrl: 'mongodb://CDP_Insta:CDP_Insta@localhost:27017/cdpInsta',
   mediaStoragePath: path.join(__dirname, '../../data'),
   numUserPostsPerDay: 20,
   numTaggedPostsPerHour: 100,
