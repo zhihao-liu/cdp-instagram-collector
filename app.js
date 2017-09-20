@@ -22,20 +22,22 @@ app.post('/start', async (req, res) => {
 
   let message = '';
 
-  if(req.body.mediaStoragePath !== '') appConfig.mediaStoragePath = req.body.mediaStoragePath;
+  appConfig.saveMediaToLocal = req.body.saveMediaToLocal === 'on' ? true : false;
+
+  if (req.body.mediaStoragePath !== '') appConfig.mediaStoragePath = req.body.mediaStoragePath;
 
   const collector = new InstaCollector(loginInfo, appConfig);
 
   await collector.activate();
 
-  if(req.body.collectUsers === 'on') {
+  if (req.body.collectUsers === 'on') {
     collector.startCollectingUsers()
     .catch(err => logger.errorWhen('starting collector for users', err));
 
     message += '\nCollecting users started.';
   };
 
-  if(req.body.collectPosts === 'on') {
+  if (req.body.collectPosts === 'on') {
     const historicalOnly = req.body.optionCollectPosts === 'historical' ? true : false;
     collector.startCollectingPosts({historicalOnly: historicalOnly})
     .catch(err => logger.errorWhen('starting collector for new posts from users', err));
@@ -43,7 +45,7 @@ app.post('/start', async (req, res) => {
     message += `\nCollecting ${req.body.optionCollectPosts} posts started.`;
   }
 
-  if(req.body.collectHashtagPosts === 'on') {
+  if (req.body.collectHashtagPosts === 'on') {
     const specifiedHashtags = req.body.specifiedHashtags.split(',');
 
     for (let hashtag of specifiedHashtags) {
@@ -55,7 +57,7 @@ app.post('/start', async (req, res) => {
     }
   }
 
-  if(req.body.collectLocationPosts === 'on') {
+  if (req.body.collectLocationPosts === 'on') {
     const specifiedLocations = req.body.specifiedLocations.split(',');
 
     for (let location of specifiedLocations) {

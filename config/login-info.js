@@ -1,6 +1,6 @@
 'use strict';
 
 module.exports = {
-  username: 'mcrlab',
+  username: 'mcrlab.test',
   password: 'uottawa-mcrlab'
 };

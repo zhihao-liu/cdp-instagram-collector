@@ -1,12 +1,11 @@
 {
-  "name": "instagram-collector-service",
+  "name": "cdp-instagram-collector",
   "version": "1.0.0",
-  "description": "Collecting data via Istagram API.",
+  "description": "Collecting data via Instagram API.",
   "private": true,
   "author": "Zhihao Liu",
   "scripts": {
-    "start": "node ./bin/www",
-    "test": "node ./bin/test"
+    "start": "node ./bin/www"
   },
   "dependencies": {
     "bluebird": "^3.5.0",

@@ -12,5 +12,5 @@ const port = (typeof specifiedPort) !== 'undefined' ? specifiedPort : defaultPor
 const server = http.createServer(app);
 server.listen(port);
 
-server.on('error', err => logger.errorWhen('creating http server', err));
+server.on('error', err => console.log(`Error when creating server: ${err}`));
 server.on('listening', () => console.log(`Server listening on port ${port}`));
