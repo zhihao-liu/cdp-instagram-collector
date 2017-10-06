@@ -1,13 +1,19 @@
 'use strict';
 
 const path = require('path');
+const userConfig = require('./user.config.js');
 
-module.exports = {
-  serverPortDefault: 3000,
-  mongoPortDefault: 27017,
-  mongoConnectionUrl: 'mongodb://localhost:27017/cdpInsta',
+const adminConfig = {
+  loginInfo: {
+    username: 'mcrlab',
+    password: 'uottawa-mcrlab'
+  },
+
+  mongoConnectionUrl: 'mongodb://localhost:27017/instagram',
+
   saveMediaToLocal: true,
-  mediaStoragePath: 'E:/instagram_media',
+  mediaStoragePath: path.resolve(__dirname, '../data'),
+  
   numUserPostsPerDay: 20,
   numTaggedPostsPerHour: 100,
   numUsersInProgress: 20,
@@ -24,3 +30,5 @@ module.exports = {
     };
   }
 };
+
+module.exports = Object.assign(adminConfig, userConfig);

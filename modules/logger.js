@@ -7,11 +7,21 @@ const utilities = require('./utilities');
 
 log4js.configure({
   appenders: {
-    file: {type: 'file', filename: path.join(__dirname, `../logs/${utilities.dateStringToday()}.log`)},
-    console: {type: 'console'}
+    file: {
+      type: 'file',
+      filename: path.join(__dirname, `../logs/${utilities.dateStringToday()}.log`)
+    },
+    console: {
+      type: 'console'
+    }
   },
   categories: {
-    default: {appenders: [ 'file' ], level: 'info'}
+    default: {
+      appenders: [
+        'file', 
+        'console'
+      ],
+      level: 'info'}
   }
 });
 

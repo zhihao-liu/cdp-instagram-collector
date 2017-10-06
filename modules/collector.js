@@ -152,7 +152,7 @@ InstaCollector.prototype.collectUserPosts = async function (options) {
   // handle it ouside this function
   while (await cursorUsers.hasNext()) {
     const item = await cursorUsers.next();
-    logger.info(`Start collecting user with id "${item.info.id}"`);
+    // logger.info(`Start collecting user with id "${item.info.id}"`);
 
     try {
       const limit = typeof item.datesFetched === 'undefined' ? Infinity : this.config.numUserPostsPerDay;
@@ -164,7 +164,7 @@ InstaCollector.prototype.collectUserPosts = async function (options) {
       await this.iterateFeed(postFeed, 'posts', options)
       await this.mongo.collection('users').updateOne({'info.id': item.info.id}, {$set: {datesFetched: datesFetched}})
 
-      logger.info(`Finish collecting user with id "${item.info.id}"`);
+      // logger.info(`Finish collecting user with id "${item.info.id}"`);
     } catch (err) {
       logger.errorWhen('retrieving user info from MongoDB', err);
     }

@@ -5,7 +5,12 @@
   "private": true,
   "author": "Zhihao Liu",
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node index.js",
+    "deploy": "pm2 start index.js --name instagram-collector",
+    "deploy-start": "pm2 start instagram-collector",
+    "deploy-stop": "pm2 stop instagram-collector",
+    "deploy-restart": "pm2 restart instagram-collector",
+    "deploy-delete": "pm2 delete instagram-collector"
   },
   "dependencies": {
     "bluebird": "^3.5.0",
@@ -17,5 +22,8 @@
     "log4js": "^2.3.3",
     "mongodb": "^2.2.31",
     "underscore": "^1.8.3"
+  },
+  "devDependencies": {
+    "pm2": "^2.7.1"
   }
 }
