@@ -9,7 +9,7 @@ async function main() {
   const collector = new InstaCollector(config.loginInfo, config);
   await collector.activate();
 
-  const tasks = config.tasks;
+  const { tasks } = config;
 
   if (tasks.fetchUsers.on) {
     collector.startCollectingUsers()
