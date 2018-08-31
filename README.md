@@ -12,7 +12,7 @@ A module of City Digital Pulse (University of Ottawa - MCRLab) for collecting da
 4. Open terminal in the project folder.  
 5. Install all node dependencies:  
 `$ yarn install`
-> **Note**: You must use Yarn for this step to ensure all the dependencies are installed with the proper version. For the following steps you can use npm instead.
+> **Note**: Please use Yarn to ensure all the dependencies are installed with the proper version.
 6. Start the application:  
 `$ yarn run start`  
 
